@@ -27,7 +27,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.FontMetricsInt;
@@ -63,7 +62,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
@@ -636,8 +634,13 @@ public class MessageListItem extends LinearLayout implements
                         }
                         final String telPrefix = "tel:";
                         if (url.startsWith(telPrefix)) {
-                            url = PhoneNumberUtils.formatNumber(
-                                            url.substring(telPrefix.length()), mDefaultCountryIso);
+                            if ((mDefaultCountryIso == null) || mDefaultCountryIso.isEmpty()) {
+                                url = url.substring(telPrefix.length());
+                            }
+                            else {
+                                url = PhoneNumberUtils.formatNumber(
+                                        url.substring(telPrefix.length()), mDefaultCountryIso);
+                            }
                         }
                         tv.setText(url);
                     } catch (android.content.pm.PackageManager.NameNotFoundException ex) {

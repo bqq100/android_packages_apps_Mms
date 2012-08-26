@@ -17,6 +17,8 @@
 
 package com.android.mms.ui;
 
+import java.util.regex.Pattern;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -37,10 +39,9 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
+
 import com.android.mms.R;
 import com.google.android.mms.MmsException;
-
-import java.util.regex.Pattern;
 
 /**
  * The back-end data adapter of a message list.
