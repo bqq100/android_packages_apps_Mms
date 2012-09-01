@@ -47,14 +47,15 @@ import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.DialogInterface.OnClickListener;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -75,19 +76,19 @@ import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
-import android.provider.Settings;
 import android.provider.ContactsContract.Intents;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
+import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
-import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsMessage;
-import android.content.ClipboardManager;
 import android.text.Editable;
 import android.text.InputFilter;
+import android.text.InputFilter.LengthFilter;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -109,6 +110,8 @@ import android.view.WindowManager;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
+import android.view.ViewStub;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
@@ -140,13 +143,6 @@ import com.android.mms.data.Conversation.ConversationQueryHandler;
 import com.android.mms.data.WorkingMessage;
 import com.android.mms.data.WorkingMessage.MessageStatusListener;
 import com.android.mms.drm.DrmUtils;
-import com.google.android.mms.ContentType;
-import com.google.android.mms.pdu.EncodedStringValue;
-import com.google.android.mms.MmsException;
-import com.google.android.mms.pdu.PduBody;
-import com.google.android.mms.pdu.PduPart;
-import com.google.android.mms.pdu.PduPersister;
-import com.google.android.mms.pdu.SendReq;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.transaction.MessagingNotification;
@@ -158,8 +154,13 @@ import com.android.mms.util.PhoneNumberFormatter;
 import com.android.mms.util.EmojiParser;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.util.SmileyParser;
-
-import android.text.InputFilter.LengthFilter;
+import com.google.android.mms.ContentType;
+import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.EncodedStringValue;
+import com.google.android.mms.pdu.PduBody;
+import com.google.android.mms.pdu.PduPart;
+import com.google.android.mms.pdu.PduPersister;
+import com.google.android.mms.pdu.SendReq;
 
 /**
  * This is the main UI for:
@@ -1154,7 +1155,6 @@ public class ComposeMessageActivity extends Activity
 
         mWorkingMessage = newWorkingMessage;
         mWorkingMessage.setConversation(mConversation);
-        invalidateOptionsMenu();
 
         drawTopPanel(false);
 
@@ -1932,10 +1932,6 @@ public class ComposeMessageActivity extends Activity
         } else {
             hideRecipientEditor();
         }
-        invalidateOptionsMenu();    // do after show/hide of recipients editor because the options
-                                    // menu depends on the recipients, which depending upon the
-                                    // visibility of the recipients editor, returns a different
-                                    // value (see getRecipients()).
 
         updateSendButtonState();
 
@@ -2073,7 +2069,6 @@ public class ComposeMessageActivity extends Activity
                 loadDraft();
                 mWorkingMessage.setConversation(mConversation);
                 mAttachmentEditor.update(mWorkingMessage);
-                invalidateOptionsMenu();
             }
         }
     }
@@ -2212,10 +2207,20 @@ public class ComposeMessageActivity extends Activity
     protected void onStop() {
         super.onStop();
 
+        // No need to do the querying when finished this activity
+        mBackgroundQueryHandler.cancelOperation(MESSAGE_LIST_QUERY_TOKEN);
+
         // Allow any blocked calls to update the thread's read status.
         mConversation.blockMarkAsRead(false);
 
         if (mMsgListAdapter != null) {
+            // Close the cursor in the ListAdapter if the activity stopped.
+            Cursor cursor = mMsgListAdapter.getCursor();
+
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+
             mMsgListAdapter.changeCursor(null);
             mMsgListAdapter.cancelBackgroundLoading();
         }
@@ -2822,7 +2827,6 @@ public class ComposeMessageActivity extends Activity
                         updateThreadIdIfRunning();
                         drawTopPanel(false);
                         updateSendButtonState();
-                        invalidateOptionsMenu();
                     }
                 }
                 break;
@@ -3227,6 +3231,8 @@ public class ComposeMessageActivity extends Activity
         boolean showingAttachment = mAttachmentEditor.update(mWorkingMessage);
         mAttachmentEditorScrollView.setVisibility(showingAttachment ? View.VISIBLE : View.GONE);
         showSubjectEditor(showSubjectEditor || mWorkingMessage.hasSubject());
+
+        invalidateOptionsMenu();
     }
 
     //==========================================================
@@ -3760,6 +3766,7 @@ public class ComposeMessageActivity extends Activity
         @Override
         public void onDataSetChanged(MessageListAdapter adapter) {
             mPossiblePendingNotification = true;
+            checkPendingNotification();
         }
 
         @Override

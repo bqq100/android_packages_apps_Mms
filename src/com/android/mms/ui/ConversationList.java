@@ -21,6 +21,52 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 
+import android.app.ActionBar;
+import android.app.AlertDialog;
+import android.app.ListActivity;
+import android.app.SearchManager;
+import android.app.SearchableInfo;
+import android.content.ActivityNotFoundException;
+import android.content.AsyncQueryHandler;
+import android.content.ComponentName;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteException;
+import android.database.sqlite.SqliteWrapper;
+import android.os.Bundle;
+import android.os.Handler;
+import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.Contacts;
+import android.provider.Telephony.Mms;
+import android.provider.Telephony.Threads;
+import android.util.Log;
+import android.view.ActionMode;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnCreateContextMenuListener;
+import android.view.View.OnKeyListener;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.CheckBox;
+import android.widget.ListView;
+import android.widget.SearchView;
+import android.widget.TextView;
+
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
@@ -32,53 +78,6 @@ import com.android.mms.transaction.SmsRejectedReceiver;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.google.android.mms.pdu.PduHeaders;
-
-import android.content.ActivityNotFoundException;
-import android.content.pm.PackageManager;
-import android.database.sqlite.SqliteWrapper;
-
-import android.app.ActionBar;
-import android.app.AlertDialog;
-import android.app.ListActivity;
-import android.app.SearchManager;
-import android.app.SearchableInfo;
-import android.content.AsyncQueryHandler;
-import android.content.ComponentName;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.DialogInterface.OnClickListener;
-import android.content.res.Configuration;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteException;
-import android.os.Bundle;
-import android.os.Handler;
-import android.preference.PreferenceManager;
-import android.provider.ContactsContract;
-import android.provider.ContactsContract.Contacts;
-import android.provider.Telephony.Mms;
-import android.provider.Telephony.Threads;
-import android.util.Log;
-import android.view.ActionMode;
-import android.view.ContextMenu;
-import android.view.Gravity;
-import android.view.KeyEvent;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ContextMenu.ContextMenuInfo;
-import android.view.View.OnCreateContextMenuListener;
-import android.view.View.OnKeyListener;
-import android.widget.AdapterView;
-import android.widget.CheckBox;
-import android.widget.ListView;
-import android.widget.SearchView;
-import android.widget.TextView;
 
 /**
  * This activity provides a list view of existing conversations.
@@ -104,7 +103,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private ConversationListAdapter mListAdapter;
     private SharedPreferences mPrefs;
     private Handler mHandler;
-    private boolean mNeedToMarkAsSeen;
+    private boolean mNeedToRemoveObsoleteThreads;
     private TextView mUnreadConvCount;
     private MenuItem mSearchItem;
     private SearchView mSearchView;
@@ -252,7 +251,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         DraftCache.getInstance().addOnDraftChangedListener(this);
 
-        mNeedToMarkAsSeen = true;
+        mNeedToRemoveObsoleteThreads = true;
 
         startAsyncQuery();
 
@@ -283,6 +282,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // Simply setting the choice mode causes the previous choice mode to finish and we exit
         // multi-select mode (if we're in it) and remove all the selections.
         getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+
+        // Close the cursor in the ListAdapter if the activity stopped.
+        Cursor cursor = mListAdapter.getCursor();
+
+        if (cursor != null && !cursor.isClosed()) {
+            cursor.close();
+        }
 
         mListAdapter.changeCursor(null);
     }
@@ -731,13 +737,12 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     ((TextView)(getListView().getEmptyView())).setText(R.string.no_conversations);
                 }
 
-                if (mNeedToMarkAsSeen) {
-                    mNeedToMarkAsSeen = false;
-                    Conversation.markAllConversationsAsSeen(getApplicationContext());
-
+                Conversation.markAllConversationsAsSeen(getApplicationContext());
+                if (mNeedToRemoveObsoleteThreads) {
+                    mNeedToRemoveObsoleteThreads = false;
                     // Delete any obsolete threads. Obsolete threads are threads that aren't
                     // referenced by at least one message in the pdu or sms tables. We only call
-                    // this on the first query (because of mNeedToMarkAsSeen).
+                    // this on the first query.
                     mHandler.post(mDeleteObsoleteThreadsRunnable);
                 }
                 break;
