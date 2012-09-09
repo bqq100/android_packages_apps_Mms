@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * QuickMessage (C) 2012 The CyanogenMod Project (DvTonder)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +28,21 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import com.android.mms.R;
+import com.android.mms.LogTag;
+import com.android.mms.data.Contact;
+import com.android.mms.data.Conversation;
+import com.android.mms.data.WorkingMessage;
+import com.android.mms.model.SlideModel;
+import com.android.mms.model.SlideshowModel;
+import com.android.mms.quickmessage.QuickMessagePopup;
+import com.android.mms.ui.ComposeMessageActivity;
+import com.android.mms.ui.ConversationList;
+import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.util.AddressUtils;
+import com.android.mms.util.DownloadManager;
+import com.android.mms.widget.MmsWidgetProvider;
 
 import com.android.mms.quickmessage.QuickMessage;
 
@@ -66,19 +82,6 @@ import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.mms.LogTag;
-import com.android.mms.R;
-import com.android.mms.data.Contact;
-import com.android.mms.data.Conversation;
-import com.android.mms.data.WorkingMessage;
-import com.android.mms.model.SlideModel;
-import com.android.mms.model.SlideshowModel;
-import com.android.mms.ui.ComposeMessageActivity;
-import com.android.mms.ui.ConversationList;
-import com.android.mms.ui.MessagingPreferenceActivity;
-import com.android.mms.util.AddressUtils;
-import com.android.mms.util.DownloadManager;
-import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
 import com.google.android.mms.pdu.GenericPdu;
@@ -96,7 +99,7 @@ public class MessagingNotification {
     private static final String TAG = LogTag.APP;
     private static final boolean DEBUG = false;  // TODO turn off before ship
 
-    private static final int NOTIFICATION_ID = 123;
+    public static final int NOTIFICATION_ID = 123;
     public static final int MESSAGE_FAILED_NOTIFICATION_ID = 789;
     public static final int DOWNLOAD_FAILED_NOTIFICATION_ID = 531;
     /**
@@ -979,13 +982,12 @@ public class MessagingNotification {
         if (mostRecentNotification.mIsSms) {
             // QuickMessage support is only for SMS
             qmIntent = new Intent();
-            qmIntent.setClass(context, QuickMessage.class);
+            qmIntent.setClass(context, QuickMessagePopup.class);
             qmIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP |
                     Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-            qmIntent.putExtra(QuickMessage.SMS_FROM_NAME_EXTRA, mostRecentNotification.mSender.getName());
-            qmIntent.putExtra(QuickMessage.SMS_FROM_NUMBER_EXTRA, mostRecentNotification.mSender.getNumber());
-            qmIntent.putExtra(QuickMessage.SMS_NOTIFICATION_OBJECT_EXTRA, mostRecentNotification);
-            qmIntent.putExtra(QuickMessage.SMS_NOTIFICATION_ID_EXTRA, NOTIFICATION_ID);
+            qmIntent.putExtra(QuickMessagePopup.SMS_FROM_NAME_EXTRA, mostRecentNotification.mSender.getName());
+            qmIntent.putExtra(QuickMessagePopup.SMS_FROM_NUMBER_EXTRA, mostRecentNotification.mSender.getNumber());
+            qmIntent.putExtra(QuickMessagePopup.SMS_NOTIFICATION_OBJECT_EXTRA, mostRecentNotification);
         }
 
         // Start getting the notification ready
@@ -1099,6 +1101,9 @@ public class MessagingNotification {
             }
         }
 
+        // Post the notification
+        nm.notify(NOTIFICATION_ID, notification);
+
         // Trigger the QuickMessage pop-up activity if enabled
         // But don't show the QuickMessage if the user is in a call or the phone is ringing
         if (qmPopupEnabled) {
@@ -1107,10 +1112,6 @@ public class MessagingNotification {
                 context.startActivity(qmIntent);
             }
         }
-
-        // Post the notification
-        nm.notify(NOTIFICATION_ID, notification);
-
     }
 
     protected static CharSequence buildTickerMessage(
