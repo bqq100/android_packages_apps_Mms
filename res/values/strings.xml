@@ -49,7 +49,7 @@
     <!-- Context menu item on an individual conversation for viewing that conversation -->
     <string name="menu_view">View thread</string>
     <!-- Menu item for debugging - do not localize -->
-    <string name="menu_debug_dump">DEBUG DUMP</string>
+    <string name="menu_debug_dump" translatable="false">DEBUG DUMP</string>
     <!-- Message that appears on screen while SIM card messages are retrieved -->
     <string name="refreshing">Refreshing\u2026</string>
 
@@ -367,14 +367,14 @@
     </string-array>
 
     <!-- The default vibrateWhen value, when none is set -->
-    <string translatable="false" name="prefDefault_vibrateWhen">never</string>
+    <string name="prefDefault_vibrateWhen" translatable="false">never</string>
     <!-- The value to use when migrating from old versions for a true vibrate setting -->
-    <string translatable="false" name="prefDefault_vibrate_true">always</string>
+    <string name="prefDefault_vibrate_true" translatable="false">always</string>
     <!-- The value to use when migrating from old versions for a false vibrate setting -->
-    <string translatable="false" name="prefDefault_vibrate_false">never</string>
+    <string name="prefDefault_vibrate_false" translatable="false">never</string>
 
     <!-- The vibrateWhen values -->
-    <string-array translatable="false" name="prefValues_vibrateWhen">
+    <string-array name="prefValues_vibrateWhen" translatable="false">
         <item>always</item>
         <item>silent</item>
         <item>never</item>
@@ -624,12 +624,18 @@
     <string name="copy_to_sdcard_success">Attachment saved.</string>
     <!-- Toast message on failed copy to shared storage [CHAR LIMIT=30] -->
     <string name="copy_to_sdcard_fail">Couldn\'t save attachment.</string>
+    <!-- File name used to copy an attachment to the shared storage
+    if the received location is not a valid file name -->
+    <string translatable="false" name="copy_to_sdcard_filename_fallback">mms</string>
     <!-- Menu title to save a sound as a ringtone -->
     <string name="save_ringtone">Save as ringtone</string>
     <!-- Toast message on successful copying ringtone to drm provider -->
     <string name="saved_ringtone">Ringtone saved.</string>
     <!-- Toast message on failed copying ringtone to drm provider -->
     <string name="saved_ringtone_fail">Couldn\'t save ringtone.</string>
+    <!-- File name used to save a sound as a ringtone
+    if the received location is not a valid file name -->
+    <string translatable="false" name="save_ringtone_filename_fallback">mms_ringtone</string>
     <!-- Menu item -->
     <string name="menu_insert_smiley">Insert smiley</string>
     <string name="menu_insert_emoji">Insert emojis</string>
