@@ -154,6 +154,7 @@ import com.android.mms.util.PhoneNumberFormatter;
 import com.android.mms.util.EmojiParser;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.util.SmileyParser;
+import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -3276,7 +3277,7 @@ public class ComposeMessageActivity extends Activity
         if (event != null) {
             // if shift key is down, then we want to insert the '\n' char in the TextView;
             // otherwise, the default action is to send the message.
-            if (!event.isShiftPressed()) {
+            if (!event.isShiftPressed() && event.getAction() == KeyEvent.ACTION_DOWN) {
                 if (isPreparedForSending()) {
                     confirmSendMessageIfNeeded();
                 }
@@ -4038,6 +4039,8 @@ public class ComposeMessageActivity extends Activity
                 // Check to see if we just deleted the last message
                 startMsgListQuery(MESSAGE_LIST_QUERY_AFTER_DELETE_TOKEN);
             }
+
+            MmsWidgetProvider.notifyDatasetChanged(getApplicationContext());
         }
     }
 
