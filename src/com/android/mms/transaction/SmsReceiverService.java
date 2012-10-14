@@ -61,6 +61,7 @@ import com.android.mms.util.Recycler;
 import com.android.mms.util.SendingProgressTokenManager;
 import com.android.mms.widget.MmsWidgetProvider;
 import com.google.android.mms.MmsException;
+import com.android.mms.MmsConfig;
 
 /**
  * This service essentially plays the role of a "worker thread", allowing us to store
@@ -439,6 +440,9 @@ public class SmsReceiverService extends Service {
             return null;
         } else if (sms.isReplace()) {
             return replaceMessage(context, msgs, error);
+        } else if (MmsConfig.getSprintVVMEnabled() &&
+                   sms.getOriginatingAddress().contentEquals("9016")) {
+            return null;
         } else {
             return storeMessage(context, msgs, error);
         }

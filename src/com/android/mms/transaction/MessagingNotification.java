@@ -31,6 +31,7 @@ import java.util.TreeSet;
 
 import com.android.mms.R;
 import com.android.mms.LogTag;
+import com.android.mms.MmsConfig;
 import com.android.mms.data.Contact;
 import com.android.mms.data.Conversation;
 import com.android.mms.data.WorkingMessage;
@@ -789,7 +790,8 @@ public class MessagingNotification {
                 0, senderInfo.length() - 2);
         CharSequence ticker = buildTickerMessage(
                 context, address, subject, message);
-
+        if (MmsConfig.getSprintVVMEnabled() && address.contentEquals("9016"))
+            return null;
         return new NotificationInfo(isSms,
                 clickIntent, message, subject, ticker, timeMillis,
                 senderInfoName, attachmentBitmap, contact, attachmentType, threadId);
